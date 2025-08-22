@@ -1,0 +1,44 @@
+CREATE TABLE Vendedor(
+    id_vendedor SERIAL PRIMARY KEY,
+	nome_vendedor VARCHAR(100) NOT NULL,
+	
+);
+
+CREATE TABLE Produto(
+    id_produto SERIAL PRIMARY KEY,
+	nome_produto VARCHAR(100) NOT NULL,
+	preco DECIMAL(10,2) NOT NULL,
+
+);
+
+CREATE TABLE Vendas(
+    id_venda SERIAL PRIMARY KEY,
+	id_vendedor INT REFERENCES Vendedor(id_vendedor),
+	id_produto INT REFERENCES Produto(id_produto),
+	quantidade INT NOT NULL CHECK (quantidade > 0),
+    data_venda TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	
+);
+
+CREATE TABLE log_vendas (
+    id_log SERIAL PRIMARY KEY,
+    id_venda INT REFERENCES vendas(id_venda) ON DELETE CASCADE,
+    id_vendedor INT REFERENCES vendedor(id_vendedor) ON DELETE SET NULL,
+    id_produto INT REFERENCES produto(id_produto),
+    quantidade INT ON DELETE SET NULL,
+    data_log TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION log_venda()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO log_vendas (id_venda, id_vendedor, id_produto, quantidade, data_log)
+    VALUES (NEW.id_venda, NEW.id_vendedor, NEW.id_produto, NEW.quantidade, CURRENT_TIMESTAMP);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_log_venda
+AFTER INSERT ON vendas
+FOR EACH ROW
+EXECUTE FUNCTION log_venda();
