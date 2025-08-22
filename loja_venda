@@ -1,0 +1,58 @@
+CREATE TABLE Loja(
+     id_loja SERIAL PRIMARY KEY,
+	 endereco VARCHAR(100),
+	 nome VARCHAR(100)
+);
+
+CREATE TABLE Funcionarios(
+     id_funcionario SERIAL PRIMARY KEY,
+	 endereco VARCHAR(100),
+	 nome VARCHAR(100)
+);
+
+CREATE TABLE Estoque(
+     id_estoque SERIAL PRIMARY KEY,
+	 produto VARCHAR(100),
+	 quantidade INT NOT NULL,
+	 valor DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE Venda(
+     id_venda SERIAL PRIMARY KEY,
+	 id_estoque INT REFERENCES Estoque(id_estoque),
+	 quantidade INT NOT NULL CHECK (quantidade > 0),
+	 valor_produto DECIMAL(10,2) NOT NULL,
+	 valor_venda DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE log_vendas(
+     id_log SERIAL PRIMARY KEY,
+	 id_venda INT REFERENCES Vendas(id_venda) ON DELETE CASCADE,
+	 data_venda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	 id_estoque INT REFERENCES Estoque(id_estoque),
+	 id_loja INT REFERENCES Loja(id_loja)
+);
+
+CREATE OR REPLACE VIEW vendas_realizadas AS
+SELECT 
+    v.id_venda AS venda,
+    e.produto AS produto,
+    v.quantidade AS quantidade_vendida,
+    e.valor AS valor_produto,
+    v.valor_venda AS valor_venda
+FROM 
+    Venda v
+JOIN 
+    Estoque e ON v.id_estoque = e.id_estoque;
+
+
+
+CREATE OR REPLACE FUNCTION log_vendas()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO log_vendas(id_venda, id_estoque, id_loja)
+    VALUES (NEW.id_venda, NEW.id_estoque, NEW.id_loja);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
